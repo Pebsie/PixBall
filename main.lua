@@ -12,6 +12,20 @@ function love.load()
         ball = love.graphics.newImage("img/ball.png")
     }
 
+    resetPitch()
+
+    game = {
+        turn = 1,
+        score1 = 0,
+        score2 = 0,
+        bx = 0, -- for drawing arrow when player movement occurs
+        by = 0,
+        selP = -1,
+        movesLeft = 3 -- selected player
+    }
+end
+
+function resetPitch()
     player = {}
     for i = 1, 5 do
         player[i] = {
@@ -40,16 +54,6 @@ function love.load()
         y = 320/2,
         xv = 0,
         yv = 0
-    }
-
-    game = {
-        turn = 1,
-        score1 = 0,
-        score2 = 0,
-        bx = 0, -- for drawing arrow when player movement occurs
-        by = 0,
-        selP = -1,
-        movesLeft = 3 -- selected player
     }
 end
 
@@ -99,8 +103,19 @@ function love.update(dt)
         if v.yv > 0 then v.yv = v.yv - dragY else v.yv = v.yv + dragY end
 
         if distanceFrom(v.x+asset.player:getWidth()/2, v.y+asset.player:getHeight()/2, ball.x+asset.ball:getWidth()/2, ball.y+asset.ball:getHeight()/2) < asset.ball:getWidth()+2 then
+            if v.xv == 0 then ball.xv = 0 end
+            if v.yv == 0 then ball.yv = 0 end
             ball.xv = ball.xv + v.xv
             ball.yv = ball.yv + v.yv
+        end
+
+        for k,e in pairs(player) do
+            if k ~= i then    
+                if v.x > e.x and v.x < e.x+asset.player:getWidth() and v.y > e.y and v.y < e.y+asset.player:getHeight() then
+                    v.xv = -v.xv
+                    v.yv = -v.yv
+                end
+            end
         end
         player[i] = v
     end
@@ -108,7 +123,16 @@ function love.update(dt)
     ball.x = ball.x + ball.xv*dt
     ball.y = ball.y + ball.yv*dt
     if ball.x > 180-asset.ball:getWidth() or ball.x < 1 then ball.xv = -ball.xv end
-    if ball.y > 320-asset.ball:getHeight() or ball.y < 1 then ball.yv = -ball.yv end
+    if ball.y > 320 and (ball.x > 64 and ball.x < 121) then
+        game.score1 = game.score1 + 1
+        resetPitch()
+    elseif ball.y < -asset.ball:getHeight() and (ball.x > 64 and ball.x < 121) then
+        game.score2 = game.score2 + 1
+        resetPitch()
+    elseif ball.y > 320-asset.ball:getHeight() or ball.y < 0 and not (ball.x > 64) and not (ball.x < 121) then
+        ball.yv = -ball.yv
+    end
+
     local dragX = math.abs(ball.xv)*dt
     local dragY = math.abs(ball.yv)*dt
     if ball.xv > 0 then ball.xv = ball.xv - dragX else ball.xv = ball.xv + dragX end
@@ -134,7 +158,7 @@ end
 function love.mousereleased(x,y,button)
     x = x / sx
     y = y / sy
-    local limit = 75
+    local limit = 125
     for i,v in pairs(player) do
         if v.team == game.turn and game.selP == i then
             v.xv = game.bx - x
@@ -152,6 +176,10 @@ function love.mousereleased(x,y,button)
                 game.movesLeft = 3
             end
 
+            if love.keyboard.isDown("lshift") then
+                v.xv = v.xv*2
+                v.yv = v.yv*2
+            end
             player[i] = v
         end
     end
